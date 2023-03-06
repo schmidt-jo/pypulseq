@@ -103,7 +103,7 @@ def _SAR_from_seq(
         block_dur = calc_duration(block)
         t[block_counter - 1] = t_prev + block_dur
         t_prev = t[block_counter - 1]
-        if hasattr(block, "rf"):  # has rf
+        if getattr(block, "rf") is not None:  # has rf
             rf = block.rf
             signal = rf.signal
             # This rf could be parallel transmit as well
@@ -323,3 +323,5 @@ def calc_SAR(file: Union[str, Path, Sequence]) -> None:
         plt.legend()
         plt.grid(True)
         plt.show()
+
+    return SAR_hg_tensec, SAR_hg_sixmin, SAR_wbg_tensec, SAR_wbg_sixmin
