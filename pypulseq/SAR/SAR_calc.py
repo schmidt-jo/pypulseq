@@ -265,7 +265,7 @@ def _do_sw_sar(SAR: np.ndarray, tsec: np.ndarray, t: np.ndarray) -> np.ndarray:
     return SAR_time_avg
 
 
-def calc_SAR(file: Union[str, Path, Sequence]) -> None:
+def calc_SAR(file: Union[str, Path, Sequence]) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
     Compute Global SAR values on the `.seq` object for head and whole body over the specified time averages.
 
@@ -309,19 +309,19 @@ def calc_SAR(file: Union[str, Path, Sequence]) -> None:
     ) = _SAR_lims_check(SARwbg_lim, SARhg_lim, tsec)
 
     # Plot 10 sec average SAR
-    if tsec[-1] > 10:
-        plt.plot(tsec, SAR_wbg_tensec, "x-", label="Whole Body: 10sec")
-        plt.plot(tsec, SAR_hg_tensec, ".-", label="Head only: 10sec")
-
-        # plt.plot(t, SARwbg, label='Whole Body - instant')
-        # plt.plot(t, SARhg, label='Whole Body - instant')
-
-        plt.xlabel("Time (s)")
-        plt.ylabel("SAR (W/kg)")
-        plt.title("Global SAR  - Mass Normalized -  Whole body and head only")
-
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+    # if tsec[-1] > 10:
+    #     plt.plot(tsec, SAR_wbg_tensec, "x-", label="Whole Body: 10sec")
+    #     plt.plot(tsec, SAR_hg_tensec, ".-", label="Head only: 10sec")
+    #
+    #     # plt.plot(t, SARwbg, label='Whole Body - instant')
+    #     # plt.plot(t, SARhg, label='Whole Body - instant')
+    #
+    #     plt.xlabel("Time (s)")
+    #     plt.ylabel("SAR (W/kg)")
+    #     plt.title("Global SAR  - Mass Normalized -  Whole body and head only")
+    #
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.show()
 
     return SAR_hg_tensec, SAR_hg_sixmin, SAR_wbg_tensec, SAR_wbg_sixmin
