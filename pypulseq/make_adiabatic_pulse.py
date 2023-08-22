@@ -6,7 +6,6 @@ from sigpy.mri.rf import hypsec, wurst
 
 from pypulseq import eps
 from pypulseq.calc_duration import calc_duration
-from pypulseq.calc_rf_bandwidth import calc_rf_bandwidth
 from pypulseq.calc_rf_center import calc_rf_center
 from pypulseq.make_delay import make_delay
 from pypulseq.make_trapezoid import make_trapezoid
@@ -45,35 +44,38 @@ def make_adiabatic_pulse(
     type='hypsec'.
 
     hypsec(n=512, beta=800, mu=4.9, dur=0.012)
-        Design a hyperbolic secant adiabatic pulse.
-        mu * beta becomes the amplitude of the frequency sweep
+        Design a hyperbolic secant adiabatic pulse. `mu` * `beta` becomes the amplitude of the frequency sweep.
+
         Args:
-            n (int): number of samples (should be a multiple of 4).
-            beta (float): AM waveform parameter.
-            mu (float): a constant, determines amplitude of frequency sweep.
-            dur (float): pulse time (s).
+            - n (int): number of samples (should be a multiple of 4).
+            - beta (float): AM waveform parameter.
+            - mu (float): a constant, determines amplitude of frequency sweep.
+            - dur (float): pulse time (s).
+
         Returns:
             2-element tuple containing
             - **a** (*array*): AM waveform.
             - **om** (*array*): FM waveform (radians/s).
+
         References:
             Baum, J., Tycko, R. and Pines, A. (1985). 'Broadband and adiabatic
             inversion of a two-level system by phase-modulated pulses'.
             Phys. Rev. A., 32:3435-3447.
 
     wurst(n=512, n_fac=40, bw=40000.0, dur=0.002)
-        Design a WURST (wideband, uniform rate, smooth truncation) adiabatic
-         inversion pulse
+        Design a WURST (wideband, uniform rate, smooth truncation) adiabatic inversion pulse
+
         Args:
-            n (int): number of samples (should be a multiple of 4).
-            n_fac (int): power to exponentiate to within AM term. ~20 or greater is
-             typical.
-            bw (float): pulse bandwidth.
-            dur (float): pulse time (s).
+            - n (int): number of samples (should be a multiple of 4).
+            - n_fac (int): power to exponentiate to within AM term. ~20 or greater is typical.
+            - bw (float): pulse bandwidth.
+            - dur (float): pulse time (s).
+
         Returns:
             2-element tuple containing
-           - **a** (*array*): AM waveform.
+            - **a** (*array*): AM waveform.
             - **om** (*array*): FM waveform (radians/s).
+
         References:
             Kupce, E. and Freeman, R. (1995). 'Stretched Adiabatic Pulses for
             Broadband Spin Inversion'.
@@ -147,9 +149,8 @@ def make_adiabatic_pulse(
         dwell = system.rf_raster_time
 
     n_raw = np.round(duration / dwell + eps)
-    N = (
-        np.floor(n_raw / 4) * 4
-    )  # Number of points must be divisible by 4 - requirement of sigpy.mri
+    # Number of points must be divisible by 4 - requirement of sigpy.mri
+    N = np.floor(n_raw / 4) * 4
 
     if pulse_type == "hypsec":
         am, fm = hypsec(n=N, beta=beta, mu=mu, dur=duration)
@@ -163,6 +164,7 @@ def make_adiabatic_pulse(
     ifm = np.argmin(np.abs(fm))
     dfm = np.abs(fm)[ifm]
 
+    # Find rate of change of frequency at the center of the pulse
     if dfm == 0:
         pm0 = pm[ifm]
         am0 = am[ifm]
@@ -211,7 +213,7 @@ def make_adiabatic_pulse(
         rf.delay = rf.dead_time
 
     if return_gz:
-        if slice_thickness == 0:
+        if slice_thickness <= 0:
             raise ValueError("Slice thickness must be provided")
 
         if max_grad > 0:
@@ -221,7 +223,7 @@ def make_adiabatic_pulse(
             system.max_slew = max_slew
 
         if pulse_type == "hypsec":
-            bandwidth = calc_rf_bandwidth(rf, 0.1)
+            bandwidth = mu * beta / np.pi
         elif pulse_type == "wurst":
             bandwidth = bandwidth
         else:
@@ -252,9 +254,9 @@ def make_adiabatic_pulse(
     if rf.ringdown_time > 0 and return_delay:
         delay = make_delay(calc_duration(rf) + rf.ringdown_time)
 
-    if return_gz:
-        if return_delay:
-            return rf, gz, gzr, delay
+    if return_gz and return_delay:
+        return rf, gz, gzr, delay
+    elif return_gz:
         return rf, gz, gzr
     else:
         return rf

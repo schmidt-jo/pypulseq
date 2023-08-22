@@ -30,7 +30,7 @@ def ext_test_report(self) -> str:
     # Calculate TE, TR
     duration, num_blocks, event_count = self.duration()
 
-    k_traj_adc, k_traj, t_excitation, t_refocusing, t_adc = self.calculate_kspace()
+    k_traj_adc, k_traj, t_excitation, t_refocusing, t_adc = self.calculate_kspacePP()
 
     k_abs_adc = np.sqrt(np.sum(np.square(k_traj_adc), axis=0))
     k_abs_echo, index_echo = np.min(k_abs_adc), np.argmin(k_abs_adc)
@@ -44,7 +44,7 @@ def ext_test_report(self) -> str:
             i2check.append(index_echo + 1)
 
         for a in range(len(i2check)):
-            v_i_to_0 = k_traj_adc[:, index_echo]
+            v_i_to_0 = -k_traj_adc[:, index_echo]
             v_i_to_t = k_traj_adc[:, i2check[a]] - k_traj_adc[:, index_echo]
             # Project v_i_to_0 to v_i_to_t
             p_vit = np.matmul(v_i_to_0, v_i_to_t) / np.square(np.linalg.norm(v_i_to_t))
@@ -112,10 +112,11 @@ def ext_test_report(self) -> str:
 
         k_counters = np.zeros_like(k_traj_rep1)
         dims = k_traj_rep1.shape[0]
-        k_map = dict()
+        
         for j in range(dims):
+            k_map = dict()
             k_storage = np.zeros(k_len)
-            k_storage_next = 1
+            k_storage_next = 0
 
             for i in range(k_traj_rep1.shape[1]):
                 key = np.round(k_traj_rep1[j, i] / k_threshold).astype(np.int32)
@@ -131,7 +132,7 @@ def ext_test_report(self) -> str:
                     k_storage[k_storage_ind] = k_traj_rep1[j, i]
                 k_counters[j, i] = k_storage_ind
 
-        unique_k_positions = np.max(k_counters, axis=1)
+        unique_k_positions = np.max(k_counters, axis=1) + 1
         is_cartesian = np.prod(unique_k_positions) == k_traj_rep1.shape[1]
     else:
         unique_k_positions = 1
@@ -149,20 +150,24 @@ def ext_test_report(self) -> str:
     for gc in range(len(gw_data)):
         if gw_data[gc].shape[1] > 0:
             # Slew
-            gws[gc] = (
-                (gw_data[gc][1, 1:] - gw_data[gc][1, :-1])/ 
-                (gw_data[gc][0, 1:] - gw_data[gc][0, :-1])
-                )
-            
+            gws[gc] = (gw_data[gc][1, 1:] - gw_data[gc][1, :-1]) / (
+                gw_data[gc][0, 1:] - gw_data[gc][0, :-1]
+            )
+
             # Interpolate to common time
             gw_ct[gc] = np.interp(
-                x=common_time, xp=gw_data[gc][0,:], fp=gw_data[gc][1,:], left=0, right=0
+                x=common_time,
+                xp=gw_data[gc][0, :],
+                fp=gw_data[gc][1, :],
+                left=0,
+                right=0,
             )
-            
-            gs_ct[gc] = (
-                (gw_ct[gc][1:] - gw_ct[gc][:-1]) / 
-                (common_time[1:] - common_time[:-1])
-                )
+
+            # Sometimes there are very small steps in common_time:
+            #   add 1e-10 to resolve instability (adding eps is too small)
+            gs_ct[gc] = (gw_ct[gc][1:] - gw_ct[gc][:-1]) / (
+                common_time[1:] - common_time[:-1] + 1e-10
+            )
 
             # Max grad/slew per channel
             ga[gc] = np.max(np.abs(gw_data[gc][1:]))
@@ -187,14 +192,14 @@ def ext_test_report(self) -> str:
         f"TR: {TR:.6f} s\n"
     )
     report += (
-            "Flip angle: "
-            + ("{:.02f} " * len(flip_angles_deg)).format(*flip_angles_deg)
-            + "deg\n"
+        "Flip angle: "
+        + ("{:.02f} " * len(flip_angles_deg)).format(*flip_angles_deg)
+        + "deg\n"
     )
     report += (
-            "Unique k-space positions (aka cols, rows, etc.): "
-            + ("{:.0f} " * len(unique_k_positions)).format(*unique_k_positions)
-            + "\n"
+        "Unique k-space positions (aka cols, rows, etc.): "
+        + ("{:.0f} " * len(unique_k_positions)).format(*unique_k_positions)
+        + "\n"
     )
 
     if np.any(unique_k_positions > 1):
@@ -219,18 +224,18 @@ def ext_test_report(self) -> str:
     ga_converted = convert(from_value=ga, from_unit="Hz/m", to_unit="mT/m")
     gs_converted = convert(from_value=gs, from_unit="Hz/m/s", to_unit="T/m/s")
     report += (
-            "Max gradient: "
-            + ("{:.0f} " * len(ga)).format(*ga)
-            + "Hz/m == "
-            + ("{:.02f} " * len(ga_converted)).format(*ga_converted)
-            + "mT/m\n"
+        "Max gradient: "
+        + ("{:.0f} " * len(ga)).format(*ga)
+        + "Hz/m == "
+        + ("{:.02f} " * len(ga_converted)).format(*ga_converted)
+        + "mT/m\n"
     )
     report += (
-            "Max slew rate: "
-            + ("{:.0f} " * len(gs)).format(*gs)
-            + "Hz/m/s == "
-            + ("{:.02f} " * len(ga_converted)).format(*gs_converted)
-            + "T/m/s\n"
+        "Max slew rate: "
+        + ("{:.0f} " * len(gs)).format(*gs)
+        + "Hz/m/s == "
+        + ("{:.02f} " * len(ga_converted)).format(*gs_converted)
+        + "T/m/s\n"
     )
 
     ga_abs_converted = convert(from_value=ga_abs, from_unit="Hz/m", to_unit="mT/m")
