@@ -106,6 +106,9 @@ class EventLibrary:
         """
         if not isinstance(new_data, np.ndarray):
             new_data = np.array(new_data)
+        # round to 9 decimal places to avoid duplicate shape ids due to precision
+        new_data = np.round(new_data, 9)
+
         data_string = new_data.tobytes()
 
         if data_string in self.keymap:
